@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { API_HOSTS } from "../constants/api";
+import { apiFetch } from "../services/apiClient";
 
 type TokenBundle = {
   accessToken: string;
@@ -21,6 +22,7 @@ type UserProfile = {
   firstname: string;
   lastname: string;
   email: string;
+  avatarUrl?: string | null;
   phonenumber: string;
   dateOfBirth: string;
 };
@@ -38,6 +40,8 @@ type AuthContextType = {
   login: (payload: LoginPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>;
+  deleteAvatar: () => Promise<void>;
 };
 
 type ApiResponse<T> = {
@@ -49,6 +53,16 @@ type ApiResponse<T> = {
     code?: string;
     message?: string;
   };
+};
+
+type AvatarResponse = {
+  id: number;
+  objectKey: string;
+  url: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
 };
 
 const AUTH_STORAGE_KEY = "auth_tokens";
@@ -105,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshToken = useCallback(
     async (currentRefreshToken: string): Promise<TokenBundle | null> => {
-      const response = await fetch(`${API_HOSTS.auth}/auth/refresh`, {
+      const response = await apiFetch(`${API_HOSTS.auth}/auth/refresh`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -130,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfileWithAutoRefresh = useCallback(
     async (inputTokens: TokenBundle): Promise<UserProfile | null> => {
       const doFetchProfile = async (accessToken: string) => {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_HOSTS.v1}/api/v1/users/user_profile`,
           {
             method: "GET",
@@ -185,9 +199,103 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(profile);
   }, [clearAuthState, fetchProfileWithAutoRefresh, tokens]);
 
+  const uploadAvatar = useCallback(
+    async (file: File) => {
+      if (!tokens) {
+        throw new Error("No auth token found.");
+      }
+
+      const doUpload = async (accessToken: string) => {
+        const formData = new FormData();
+        formData.append("avatar", file);
+
+        const method = user?.avatarUrl ? "PUT" : "POST";
+        return apiFetch(`${API_HOSTS.v1}/api/v1/users/avatar`, {
+          method,
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formData,
+        });
+      };
+
+      let response = await doUpload(tokens.accessToken);
+      if (response.status === 401) {
+        const refreshedTokens = await refreshToken(tokens.refreshToken);
+        if (!refreshedTokens) {
+          clearAuthState();
+          throw new Error("Phien dang nhap het han.");
+        }
+
+        const savedInLocalStorage =
+          localStorage.getItem(AUTH_STORAGE_KEY) !== null;
+        writeTokensToStorage(refreshedTokens, savedInLocalStorage);
+        setTokens(refreshedTokens);
+        response = await doUpload(refreshedTokens.accessToken);
+      }
+
+      const payload = (await response.json()) as ApiResponse<AvatarResponse>;
+      if (!response.ok || !payload.success || !payload.data) {
+        throw new Error(payload.message || "Upload avatar that bai.");
+      }
+
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              avatarUrl: payload.data.url,
+            }
+          : prev,
+      );
+    },
+    [clearAuthState, refreshToken, tokens, user?.avatarUrl],
+  );
+
+  const deleteAvatar = useCallback(async () => {
+    if (!tokens) {
+      throw new Error("No auth token found.");
+    }
+
+    const doDelete = async (accessToken: string) =>
+      apiFetch(`${API_HOSTS.v1}/api/v1/users/avatar`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+    let response = await doDelete(tokens.accessToken);
+    if (response.status === 401) {
+      const refreshedTokens = await refreshToken(tokens.refreshToken);
+      if (!refreshedTokens) {
+        clearAuthState();
+        throw new Error("Phien dang nhap het han.");
+      }
+
+      const savedInLocalStorage = localStorage.getItem(AUTH_STORAGE_KEY) !== null;
+      writeTokensToStorage(refreshedTokens, savedInLocalStorage);
+      setTokens(refreshedTokens);
+      response = await doDelete(refreshedTokens.accessToken);
+    }
+
+    const payload = (await response.json()) as ApiResponse<{ deleted: boolean }>;
+    if (!response.ok || !payload.success) {
+      throw new Error(payload.message || "Xoa avatar that bai.");
+    }
+
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            avatarUrl: null,
+          }
+        : prev,
+    );
+  }, [clearAuthState, refreshToken, tokens]);
+
   const login = useCallback(
     async ({ loginId, password, rememberMe }: LoginPayload) => {
-      const response = await fetch(`${API_HOSTS.auth}/auth/login`, {
+      const response = await apiFetch(`${API_HOSTS.auth}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -222,7 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (refreshTokenValue) {
       try {
-        await fetch(`${API_HOSTS.auth}/auth/logout`, {
+        await apiFetch(`${API_HOSTS.auth}/auth/logout`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -268,8 +376,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       refreshProfile,
+      uploadAvatar,
+      deleteAvatar,
     }),
-    [isBootstrapping, login, logout, refreshProfile, tokens?.accessToken, user],
+    [
+      deleteAvatar,
+      isBootstrapping,
+      login,
+      logout,
+      refreshProfile,
+      tokens?.accessToken,
+      uploadAvatar,
+      user,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

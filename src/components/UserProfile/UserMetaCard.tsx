@@ -3,25 +3,216 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useRef, useState, type ChangeEvent } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useAppAlert } from "../../context/AppAlertContext";
+import UserAvatar from "../common/UserAvatar";
+import { Trash2, Upload } from "lucide-react";
+import Cropper, { type Area } from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
+
+async function createImage(src: string) {
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  image.src = src;
+  await image.decode();
+  return image;
+}
+
+async function getCroppedFile(
+  imageSrc: string,
+  pixelCrop: Area,
+  fileName: string,
+): Promise<File> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Unable to create canvas for image cropping.");
+  }
+
+  context.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height,
+  );
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((result) => resolve(result), "image/png");
+  });
+
+  if (!blob) {
+    throw new Error("Unable to crop image.");
+  }
+
+  return new File([blob], fileName, { type: "image/png" });
+}
 
 export default function UserMetaCard() {
   const { isOpen, openModal, closeModal } = useModal();
+  const { user, uploadAvatar, deleteAvatar } = useAuth();
+  const { showAlert } = useAppAlert();
+  const [isAvatarSubmitting, setIsAvatarSubmitting] = useState(false);
+  const [avatarAction, setAvatarAction] = useState<"upload" | "delete" | null>(
+    null,
+  );
+  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"upload" | "remove" | null>(
+    null,
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
     closeModal();
   };
+
+  const handleChooseFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    if (cropImageUrl) {
+      URL.revokeObjectURL(cropImageUrl);
+    }
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setCropImageUrl(URL.createObjectURL(selectedFile));
+    event.target.value = "";
+  };
+
+  const runRemoveAvatar = async () => {
+    setAvatarAction("delete");
+    setIsAvatarSubmitting(true);
+    try {
+      await deleteAvatar();
+      showAlert({
+        variant: "success",
+        title: "Avatar removed",
+        message: "Avatar removed successfully.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to remove avatar.";
+      showAlert({
+        variant: "error",
+        title: "Avatar update failed",
+        message,
+      });
+    } finally {
+      setIsAvatarSubmitting(false);
+      setAvatarAction(null);
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    setConfirmAction("remove");
+  };
+
+  const displayName = user ? `${user.firstname} ${user.lastname}`.trim() : "User";
+  const closeCropModal = () => {
+    if (cropImageUrl) {
+      URL.revokeObjectURL(cropImageUrl);
+    }
+    setCropImageUrl(null);
+    setCroppedAreaPixels(null);
+    setZoom(1);
+  };
+
+  const handleCropComplete = (_: Area, croppedPixels: Area) => {
+    setCroppedAreaPixels(croppedPixels);
+  };
+
+  const handleConfirmCrop = async () => {
+    if (!cropImageUrl || !croppedAreaPixels) {
+      return;
+    }
+
+    setConfirmAction("upload");
+  };
+
+  const runUploadAvatar = async () => {
+    if (!cropImageUrl || !croppedAreaPixels) {
+      return;
+    }
+    setAvatarAction("upload");
+    setIsAvatarSubmitting(true);
+    try {
+      const croppedFile = await getCroppedFile(
+        cropImageUrl,
+        croppedAreaPixels,
+        "avatar-cropped.png",
+      );
+      await uploadAvatar(croppedFile);
+      showAlert({
+        variant: "success",
+        title: "Avatar updated",
+        message: "Avatar updated successfully.",
+      });
+      closeCropModal();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update avatar.";
+      showAlert({
+        variant: "error",
+        title: "Avatar update failed",
+        message,
+      });
+    } finally {
+      setIsAvatarSubmitting(false);
+      setAvatarAction(null);
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (confirmAction === "remove") {
+      await runRemoveAvatar();
+      setConfirmAction(null);
+      return;
+    }
+
+    if (confirmAction === "upload") {
+      await runUploadAvatar();
+      setConfirmAction(null);
+    }
+  };
+
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
             <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
-              <img src="/images/user/owner.jpg" alt="user" />
+              <UserAvatar
+                avatarUrl={user?.avatarUrl}
+                name={displayName}
+                email={user?.email}
+                textClassName="text-2xl"
+                alt={displayName}
+              />
             </div>
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                Musharof Chowdhury
+                {displayName}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -119,29 +310,133 @@ export default function UserMetaCard() {
               </a>
             </div>
           </div>
-          <button
-            onClick={openModal}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
-          >
-            <svg
-              className="fill-current"
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+          <div className="flex w-full flex-col gap-2 lg:w-auto">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              onClick={handleChooseFile}
+              disabled={isAvatarSubmitting}
+              size="sm"
+              variant="outline"
+              startIcon={<Upload size={16} />}
+              isLoading={avatarAction === "upload"}
+              className="w-full rounded-full whitespace-nowrap lg:w-36"
             >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M15.0911 2.78206C14.2125 1.90338 12.7878 1.90338 11.9092 2.78206L4.57524 10.116C4.26682 10.4244 4.0547 10.8158 3.96468 11.2426L3.31231 14.3352C3.25997 14.5833 3.33653 14.841 3.51583 15.0203C3.69512 15.1996 3.95286 15.2761 4.20096 15.2238L7.29355 14.5714C7.72031 14.4814 8.11172 14.2693 8.42013 13.9609L15.7541 6.62695C16.6327 5.74827 16.6327 4.32365 15.7541 3.44497L15.0911 2.78206ZM12.9698 3.84272C13.2627 3.54982 13.7376 3.54982 14.0305 3.84272L14.6934 4.50563C14.9863 4.79852 14.9863 5.2734 14.6934 5.56629L14.044 6.21573L12.3204 4.49215L12.9698 3.84272ZM11.2597 5.55281L5.6359 11.1766C5.53309 11.2794 5.46238 11.4099 5.43238 11.5522L5.01758 13.5185L6.98394 13.1037C7.1262 13.0737 7.25666 13.003 7.35947 12.9002L12.9833 7.27639L11.2597 5.55281Z"
-                fill=""
-              />
-            </svg>
-            Edit
-          </button>
+              {user?.avatarUrl ? "Change" : "Upload"}
+            </Button>
+            <Button
+              onClick={handleDeleteAvatar}
+              disabled={isAvatarSubmitting || !user?.avatarUrl}
+              size="sm"
+              variant="outline"
+              startIcon={<Trash2 size={16} />}
+              isLoading={avatarAction === "delete"}
+              className="w-full rounded-full whitespace-nowrap border-red-300 text-red-600 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/20 dark:hover:text-red-400 lg:w-36"
+            >
+              Remove
+            </Button>
+            <Button
+              onClick={openModal}
+              size="sm"
+              variant="outline"
+              className="w-full rounded-full whitespace-nowrap lg:w-36"
+            >
+              Edit
+            </Button>
+          </div>
         </div>
       </div>
+      <Modal
+        isOpen={Boolean(cropImageUrl)}
+        onClose={closeCropModal}
+        className="max-w-[560px] m-4"
+      >
+        <div className="rounded-3xl bg-white p-5 dark:bg-gray-900">
+          <h4 className="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
+            Crop avatar
+          </h4>
+          <div className="relative h-[320px] overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-800">
+            {cropImageUrl ? (
+              <Cropper
+                image={cropImageUrl}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={handleCropComplete}
+              />
+            ) : null}
+          </div>
+          <div className="mt-4">
+            <Label>Zoom</Label>
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.1}
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+              className="w-full"
+            />
+          </div>
+          <div className="mt-5 flex items-center justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={closeCropModal}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleConfirmCrop} isLoading={avatarAction === "upload"}>
+              Crop & Upload
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={Boolean(confirmAction)}
+        onClose={() => setConfirmAction(null)}
+        className="max-w-[420px] m-4"
+      >
+        <div className="rounded-3xl bg-white p-6 dark:bg-gray-900">
+          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            {confirmAction === "remove" ? "Remove avatar?" : "Upload this avatar?"}
+          </h4>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            {confirmAction === "remove"
+              ? "Your current avatar will be removed."
+              : "The cropped image will be used as your new avatar."}
+          </p>
+          <div className="mt-6 flex items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setConfirmAction(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmAction}
+              isLoading={
+                (confirmAction === "remove" && avatarAction === "delete") ||
+                (confirmAction === "upload" && avatarAction === "upload")
+              }
+              className={
+                confirmAction === "remove"
+                  ? "bg-error-500 hover:bg-error-600"
+                  : ""
+              }
+            >
+              {confirmAction === "remove" ? "Yes, remove" : "Yes, upload"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
         <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">

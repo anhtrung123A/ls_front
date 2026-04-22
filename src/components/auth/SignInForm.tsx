@@ -170,9 +170,9 @@ export default function SignInForm() {
                   <Button
                     className="w-full"
                     size="sm"
-                    disabled={isSubmitting}
+                    isLoading={isSubmitting}
                   >
-                    {isSubmitting ? "Signing in..." : "Sign in"}
+                    Sign in
                   </Button>
                 </div>
               </div>

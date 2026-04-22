@@ -1,11 +1,16 @@
 import { Navigate, Outlet } from "react-router";
+import { ClipLoader } from "react-spinners";
 import { useAuth } from "../../context/AuthContext";
 
 export default function PublicRoute() {
   const { isAuthenticated, isBootstrapping } = useAuth();
 
   if (isBootstrapping) {
-    return <div className="p-6 text-sm text-gray-500">Loading session...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <ClipLoader size={28} color="rgb(70, 95, 255)" />
+      </div>
+    );
   }
 
   if (isAuthenticated) {
