@@ -24,6 +24,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./components/auth/PublicRoute";
 import AdminRoute from "./components/auth/AdminRoute";
 import Branches from "./pages/Branches";
+import BranchUsers from "./pages/BranchUsers";
 
 function AppRoutes() {
   const location = useLocation();
@@ -63,6 +64,7 @@ function AppRoutes() {
             <Route path="/blank" element={<Blank />} />
             <Route element={<AdminRoute />}>
               <Route path="/branches" element={<Branches />} />
+              <Route path="/branches/:branchId/users" element={<BranchUsers />} />
             </Route>
 
             {/* Forms */}

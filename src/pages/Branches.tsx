@@ -1,20 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Users } from "lucide-react";
+import { Link } from "react-router";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import AddCircleButton from "../components/common/AddCircleButton";
 import PageMeta from "../components/common/PageMeta";
 import PageBreadcrumb from "../components/common/PageBreadCrumb";
 import Button from "../components/ui/button/Button";
 import { Modal } from "../components/ui/modal";
 import {
   createBranch,
-  deleteBranch,
-  getBranchById,
   getBranches,
   type Branch,
   type BranchPayload,
-  updateBranch,
-  uploadBranchImage,
 } from "../services/branchService";
 import { useAppAlert } from "../context/AppAlertContext";
 
@@ -48,11 +46,7 @@ export default function Branches() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<BranchForm>(initialForm);
-  const [uploadingBranchId, setUploadingBranchId] = useState<number | null>(null);
-
-  const isEditMode = useMemo(() => editingId !== null, [editingId]);
 
   const fetchBranchList = async () => {
     setIsLoading(true);
@@ -75,39 +69,12 @@ export default function Branches() {
   }, []);
 
   const openCreate = () => {
-    setEditingId(null);
     setForm(initialForm);
     setIsOpen(true);
   };
 
-  const openEdit = async (id: number) => {
-    try {
-      const branch = await getBranchById(id);
-      setEditingId(id);
-      setForm({
-        name: branch.name,
-        description: branch.description,
-        addressLine1: branch.addressLine1,
-        addressLine2: branch.addressLine2 || "",
-        ward: branch.ward,
-        district: branch.district,
-        city: branch.city,
-        postalCode: branch.postalCode,
-        country: branch.country,
-      });
-      setIsOpen(true);
-    } catch (error) {
-      showAlert({
-        variant: "error",
-        title: "Failed to fetch branch",
-        message: error instanceof Error ? error.message : "Request failed.",
-      });
-    }
-  };
-
   const closeModal = () => {
     setIsOpen(false);
-    setEditingId(null);
     setForm(initialForm);
   };
 
@@ -126,21 +93,12 @@ export default function Branches() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      if (isEditMode && editingId !== null) {
-        await updateBranch(editingId, toPayload());
-        showAlert({
-          variant: "success",
-          title: "Branch updated",
-          message: "Branch updated successfully.",
-        });
-      } else {
-        await createBranch(toPayload());
-        showAlert({
-          variant: "success",
-          title: "Branch created",
-          message: "Branch created successfully.",
-        });
-      }
+      await createBranch(toPayload());
+      showAlert({
+        variant: "success",
+        title: "Branch created",
+        message: "Branch created successfully.",
+      });
 
       closeModal();
       await fetchBranchList();
@@ -155,50 +113,6 @@ export default function Branches() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const shouldDelete = window.confirm("Delete this branch?");
-    if (!shouldDelete) {
-      return;
-    }
-
-    try {
-      await deleteBranch(id);
-      showAlert({
-        variant: "success",
-        title: "Branch deleted",
-        message: "Branch deleted successfully.",
-      });
-      await fetchBranchList();
-    } catch (error) {
-      showAlert({
-        variant: "error",
-        title: "Delete failed",
-        message: error instanceof Error ? error.message : "Request failed.",
-      });
-    }
-  };
-
-  const handleUploadImage = async (branch: Branch, file: File) => {
-    setUploadingBranchId(branch.id);
-    try {
-      await uploadBranchImage(branch.id, file, Boolean(branch.imageUrl));
-      showAlert({
-        variant: "success",
-        title: "Branch image updated",
-        message: "Branch image uploaded successfully.",
-      });
-      await fetchBranchList();
-    } catch (error) {
-      showAlert({
-        variant: "error",
-        title: "Image upload failed",
-        message: error instanceof Error ? error.message : "Request failed.",
-      });
-    } finally {
-      setUploadingBranchId(null);
-    }
-  };
-
   return (
     <>
       <PageMeta title="Branches | Admin" description="Manage branches" />
@@ -208,14 +122,7 @@ export default function Branches() {
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
             Branch Management
           </h3>
-          <Button
-            size="sm"
-            onClick={openCreate}
-            className="h-12 w-12 rounded-full p-0"
-            aria-label="Create branch"
-          >
-            <Plus size={22} />
-          </Button>
+          <AddCircleButton onClick={openCreate} ariaLabel="Create branch" />
         </div>
 
         {isLoading ? (
@@ -227,9 +134,7 @@ export default function Branches() {
                 <Skeleton height={14} count={2} />
                 <Skeleton height={14} width="90%" />
               </div>
-              <div className="mt-4 flex justify-end gap-2">
-                <Skeleton circle width={42} height={42} />
-                <Skeleton circle width={42} height={42} />
+              <div className="mt-4 flex justify-start gap-2">
                 <Skeleton circle width={42} height={42} />
               </div>
             </div>
@@ -279,44 +184,13 @@ export default function Branches() {
                         .join(", ")}
                     </p>
                   </div>
-                  <div className="mt-auto flex items-center justify-end gap-2 pt-4">
-                    <label className="inline-flex cursor-pointer">
-                      <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-300 text-brand-500 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-white/[0.03]">
-                        {uploadingBranchId === branch.id ? (
-                          "..."
-                        ) : (
-                          <Upload size={20} />
-                        )}
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        className="hidden"
-                        disabled={uploadingBranchId === branch.id}
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (file) {
-                            void handleUploadImage(branch, file);
-                          }
-                          event.target.value = "";
-                        }}
-                      />
-                    </label>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-11 w-11 rounded-full !p-0"
-                      onClick={() => void openEdit(branch.id)}
-                    >
-                      <Pencil size={20} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-11 w-11 rounded-full !bg-error-500 !p-0 hover:!bg-error-600"
-                      onClick={() => void handleDelete(branch.id)}
-                    >
-                      <Trash2 size={20} />
-                    </Button>
+                  <div className="mt-auto flex items-center justify-start pt-4">
+                    <Link to={`/branches/${branch.id}/users`}>
+                      <Button size="sm" className="h-9 rounded-full px-3 text-xs">
+                        <Users size={16} />
+                        <span className="ml-1.5">Manage users</span>
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -328,7 +202,7 @@ export default function Branches() {
       <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[780px] m-4">
         <div className="rounded-3xl bg-white p-6 dark:bg-gray-900">
           <h4 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white/90">
-            {isEditMode ? "Update Branch" : "Create Branch"}
+            Create Branch
           </h4>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {(
