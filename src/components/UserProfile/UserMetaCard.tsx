@@ -7,6 +7,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useAppAlert } from "../../context/AppAlertContext";
 import UserAvatar from "../common/UserAvatar";
+import { getRoleDisplayName } from "../../constants/roles";
 import { Trash2, Upload } from "lucide-react";
 import Cropper, { type Area } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
@@ -129,6 +130,7 @@ export default function UserMetaCard() {
   };
 
   const displayName = user ? `${user.firstname} ${user.lastname}`.trim() : "User";
+  const displayRole = getRoleDisplayName(user?.roleId);
   const closeCropModal = () => {
     if (cropImageUrl) {
       URL.revokeObjectURL(cropImageUrl);
@@ -216,7 +218,7 @@ export default function UserMetaCard() {
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Team Manager
+                  {displayRole}
                 </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -510,7 +512,7 @@ export default function UserMetaCard() {
 
                   <div className="col-span-2">
                     <Label>Bio</Label>
-                    <Input type="text" value="Team Manager" />
+                    <Input type="text" value={displayRole} />
                   </div>
                 </div>
               </div>

@@ -19,6 +19,7 @@ type TokenBundle = {
 
 type UserProfile = {
   id: number;
+  roleId?: number;
   firstname: string;
   lastname: string;
   email: string;
