@@ -22,6 +22,8 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./components/auth/PublicRoute";
+import AdminRoute from "./components/auth/AdminRoute";
+import Branches from "./pages/Branches";
 
 function AppRoutes() {
   const location = useLocation();
@@ -59,6 +61,9 @@ function AppRoutes() {
             <Route path="/profile" element={<UserProfiles />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/blank" element={<Blank />} />
+            <Route element={<AdminRoute />}>
+              <Route path="/branches" element={<Branches />} />
+            </Route>
 
             {/* Forms */}
             <Route path="/form-elements" element={<FormElements />} />
