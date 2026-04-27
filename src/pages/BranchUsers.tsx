@@ -24,6 +24,7 @@ import {
   updateBranchUserStatus,
   type BranchUser,
 } from "../services/branchUserService";
+import Blank from "./Blank";
 
 type BranchUserForm = {
   firstname: string;
@@ -172,6 +173,12 @@ export default function BranchUsers() {
 
         {isLoading ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">Loading branch users...</p>
+        ) : items.length === 0 ? (
+          <Blank
+            embedded
+            title="No users found"
+            description="This branch does not have any users yet. Click the add button to create the first branch user."
+          />
         ) : (
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">

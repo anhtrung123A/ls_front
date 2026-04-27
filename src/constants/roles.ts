@@ -5,6 +5,7 @@ export const ROLE_ID_NAME_MAP: Record<number, string> = {
   4: "Teacher",
   5: "Student",
   6: "Parent",
+  7: "Sale",
 };
 
 export function getRoleDisplayName(roleId?: number | null) {

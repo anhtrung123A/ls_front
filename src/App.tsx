@@ -23,8 +23,10 @@ import Home from "./pages/Dashboard/Home";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import PublicRoute from "./components/auth/PublicRoute";
 import AdminRoute from "./components/auth/AdminRoute";
+import SaleRoute from "./components/auth/SaleRoute";
 import Branches from "./pages/Branches";
 import BranchUsers from "./pages/BranchUsers";
+import Leads from "./pages/Leads";
 
 function AppRoutes() {
   const location = useLocation();
@@ -65,6 +67,9 @@ function AppRoutes() {
             <Route element={<AdminRoute />}>
               <Route path="/branches" element={<Branches />} />
               <Route path="/branches/:branchId/users" element={<BranchUsers />} />
+            </Route>
+            <Route element={<SaleRoute />}>
+              <Route path="/leads" element={<Leads />} />
             </Route>
 
             {/* Forms */}

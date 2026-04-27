@@ -98,6 +98,7 @@ const AppSidebar: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
   const isAdmin = user?.roleId === 1;
+  const isSale = user?.roleId === 7;
 
   const mainItems: NavItem[] = isAdmin
     ? [
@@ -108,7 +109,16 @@ const AppSidebar: React.FC = () => {
           path: "/branches",
         },
       ]
-    : navItems;
+    : isSale
+      ? [
+          ...navItems,
+          {
+            name: "Leads",
+            icon: <BoxCubeIcon />,
+            path: "/leads",
+          },
+        ]
+      : navItems;
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
