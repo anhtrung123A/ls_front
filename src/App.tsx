@@ -3,6 +3,7 @@ import { EmailStepPage } from './pages/auth/EmailStepPage'
 import { useAuth } from './contexts/AuthContext'
 import { HomePage } from './pages/home/HomePage'
 import { CalendarPage } from './pages/calendar/CalendarPage'
+import { ClassDetailPage } from './pages/classes/ClassDetailPage'
 
 function App() {
   const { isAuthenticated } = useAuth()
@@ -20,6 +21,10 @@ function App() {
       <Route
         path="/home"
         element={isAuthenticated ? <HomePage /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/classes/:classId"
+        element={isAuthenticated ? <ClassDetailPage /> : <Navigate to="/login" replace />}
       />
       <Route
         path="/calendar"

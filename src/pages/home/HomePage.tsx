@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { logout } from '../../services/authApi'
 import { getUserProfile, type UserProfile } from '../../services/usersApi'
@@ -57,6 +58,7 @@ function UserAvatar({ profile }: { profile: UserProfile }) {
 }
 
 export function HomePage() {
+  const navigate = useNavigate()
   const { tokens, clearTokens } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
@@ -188,7 +190,19 @@ export function HomePage() {
 
               <div className="class-grid">
                 {classes.map((classroom) => (
-                  <div className="class-card" key={classroom.classStudentId}>
+                  <div
+                    className="class-card"
+                    key={classroom.classStudentId}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/classes/${classroom.classId}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        navigate(`/classes/${classroom.classId}`)
+                      }
+                    }}
+                  >
                     <div className="class-header">
                       <img
                         src="https://gstatic.com/classroom/themes/img_bookclub.jpg"

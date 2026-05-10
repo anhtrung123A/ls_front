@@ -472,6 +472,13 @@
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
+  cursor: pointer;
+  transition: box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.class-card:hover {
+  box-shadow: 0 2px 8px rgba(60, 64, 67, 0.18);
+  transform: translateY(-1px);
 }
 
 .class-header {
@@ -823,4 +830,246 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.class-detail-content {
+  background: #fff;
+  padding: 0;
+}
+
+.class-detail-tabs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #dadce0;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 3;
+}
+
+.class-detail-tabs-left,
+.class-detail-tabs-right {
+  display: flex;
+  align-items: center;
+}
+
+.class-detail-tab {
+  border: 0;
+  background: transparent;
+  padding: 14px 20px;
+  color: #5f6368;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+}
+
+.class-detail-tab.active {
+  color: #1a73e8;
+}
+
+.class-detail-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  background: #1a73e8;
+  border-radius: 3px 3px 0 0;
+}
+
+.class-detail-stream {
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px;
+}
+
+.class-detail-back {
+  border: 0;
+  background: transparent;
+  color: #1967d2;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.class-detail-hero {
+  height: 240px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.class-detail-hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.class-detail-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.45));
+}
+
+.class-detail-hero-content {
+  position: absolute;
+  left: 24px;
+  bottom: 20px;
+  color: #fff;
+}
+
+.class-detail-hero-content h1 {
+  margin: 0 0 4px;
+  font-size: 34px;
+  font-weight: 500;
+}
+
+.class-detail-hero-content p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.class-detail-grid {
+  display: none;
+}
+
+.class-detail-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.class-detail-left {
+  width: 256px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.class-detail-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.class-detail-card {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fff;
+}
+
+.class-detail-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.class-detail-card h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5f6368;
+}
+
+.class-detail-card p {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #202124;
+}
+
+.class-detail-code {
+  font-size: 24px !important;
+  font-weight: 500;
+  color: #1967d2 !important;
+}
+
+.class-detail-muted {
+  color: #5f6368 !important;
+  font-size: 13px !important;
+}
+
+.class-detail-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.class-detail-announce-btn {
+  flex: 1;
+  border: 0;
+  border-radius: 24px;
+  background: #e3f2fd;
+  color: #202124;
+  padding: 12px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.class-detail-announce-btn .material-symbols-outlined {
+  color: #1a73e8;
+}
+
+.class-detail-reuse-btn {
+  border: 0;
+  background: transparent;
+  color: #1a73e8;
+  font-weight: 500;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.class-detail-post {
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  background: #f8f9fa;
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.class-detail-post-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fce8e6;
+  color: #d93025;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.class-detail-post-content {
+  flex: 1;
+}
+
+.class-detail-post-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #202124;
+}
+
+.class-detail-post-time {
+  font-size: 12px;
+  color: #5f6368;
+}
+
+.class-detail-tab-panel {
+  margin-top: 8px;
 }
