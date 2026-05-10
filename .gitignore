@@ -1,0 +1,61 @@
+# dependencies
+node_modules/
+
+# production build
+dist/
+build/
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local env files
+.env
+.env.*
+!.env.example
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# testing
+coverage/
+
+# cache
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# vite
+vite.config.ts.timestamp-*
+
+# next.js
+.next/
+out/
+
+# nuxt
+.nuxt/
+
+# temporary files
+tmp/
+temp/
+
+# package manager
+.pnpm-store/
+
+# turbo
+.turbo/
+
+# vercel
+.vercel/
+
+# misc
+*.local
