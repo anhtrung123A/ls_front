@@ -20,9 +20,20 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { checkEmail, login } from '../../services/authApi'
 import { authTypography } from '../../constants/authTypography'
 import { AuthLinearProgress } from '../../components/auth/AuthLinearProgress'
+import { useAuth } from '../../contexts/AuthContext'
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+function getInitials(nameOrEmail: string) {
+  const trimmed = nameOrEmail.trim()
+  if (!trimmed) return '?'
+  const parts = trimmed.split(' ').filter(Boolean)
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+  }
+  return trimmed[0].toUpperCase()
 }
 
 function delay(ms: number) {
@@ -62,10 +73,12 @@ const stepVariants = {
 }
 
 export function EmailStepPage() {
+  const { setTokens } = useAuth()
   const [step, setStep] = useState<'email' | 'password'>('email')
   const [direction, setDirection] = useState<1 | -1>(1)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [emailAvatarUrl, setEmailAvatarUrl] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
@@ -101,6 +114,7 @@ export function EmailStepPage() {
           return
         }
         setEmail(response.email)
+        setEmailAvatarUrl(response.avatarUrl)
         setDirection(1)
         setStep('password')
       } catch (requestError) {
@@ -118,7 +132,12 @@ export function EmailStepPage() {
     setStatusMessage('')
     try {
       await delay(2000)
-      await login(email.trim().toLowerCase(), password)
+      const result = await login(email.trim().toLowerCase(), password)
+      setTokens({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        accessTokenExpiresAt: result.accessTokenExpiresAt,
+      })
       setStatusMessage('Signed in successfully.')
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Login failed.'
@@ -235,11 +254,31 @@ export function EmailStepPage() {
                           cursor: 'pointer',
                         }}
                       >
-                        <Box sx={{ display: 'inline-flex', color: '#5f6368' }}>
-                          <svg className="avatar" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-4.43-.82-6.14-2.88C7.55 15.8 9.68 15 12 15s4.45.8 6.14 2.12C16.43 19.18 14.03 20 12 20z" />
-                          </svg>
-                        </Box>
+                        {emailAvatarUrl ? (
+                          <Box
+                            component="img"
+                            src={emailAvatarUrl}
+                            alt={email}
+                            sx={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <Box
+                            sx={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: '50%',
+                              bgcolor: '#5c6bc0',
+                              color: '#fff',
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontSize: 10,
+                              fontWeight: 500,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {getInitials(email)}
+                          </Box>
+                        )}
                         <Typography
                           sx={{
                             fontSize: authTypography.chipEmail.fontSize,
@@ -268,6 +307,7 @@ export function EmailStepPage() {
                           value={email}
                           onChange={(event) => {
                             setEmail(event.target.value)
+                            setEmailAvatarUrl(null)
                             setError('')
                             setStatusMessage('')
                           }}
