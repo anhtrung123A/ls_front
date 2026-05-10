@@ -1,3 +1,5 @@
+import { NavLink } from 'react-router-dom'
+
 type HomeSidebarProps = {
   isCollapsed: boolean
 }
@@ -5,14 +7,17 @@ type HomeSidebarProps = {
 export function HomeSidebar({ isCollapsed }: HomeSidebarProps) {
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      <a className="menu-item active" href="#">
+      <NavLink to="/home" className={({ isActive }) => `menu-item${isActive ? ' active' : ''}`}>
         <span className="material-symbols-outlined">home</span>
         <span className="menu-label">Home</span>
-      </a>
-      <a className="menu-item" href="#">
+      </NavLink>
+      <NavLink
+        to="/calendar"
+        className={({ isActive }) => `menu-item${isActive ? ' active' : ''}`}
+      >
         <span className="material-symbols-outlined">calendar_today</span>
         <span className="menu-label">Calendar</span>
-      </a>
+      </NavLink>
       <div className="divider" />
       <div className="section-title">Teaching</div>
       <a className="menu-item" href="#">
@@ -31,4 +36,3 @@ export function HomeSidebar({ isCollapsed }: HomeSidebarProps) {
     </aside>
   )
 }
-

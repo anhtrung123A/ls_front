@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { logout } from '../../services/authApi'
 import { getUserProfile, type UserProfile } from '../../services/usersApi'
 import { getMyClasses, type MyClass } from '../../services/studentsApi'
 import { HomeTopBar } from '../../components/home/HomeTopBar'
 import { HomeSidebar } from '../../components/home/HomeSidebar'
+import { AccountModal } from '../../components/home/AccountModal'
 import './home-page.css'
 
 function getInitials(nameOrEmail: string) {
@@ -55,7 +57,7 @@ function UserAvatar({ profile }: { profile: UserProfile }) {
 }
 
 export function HomePage() {
-  const { clearTokens } = useAuth()
+  const { tokens, clearTokens } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [profileError, setProfileError] = useState('')
@@ -64,7 +66,6 @@ export function HomePage() {
   const [classesError, setClassesError] = useState('')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
-  const modalRef = useRef<HTMLDivElement | null>(null)
   const avatarTriggerRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
@@ -121,18 +122,17 @@ export function HomePage() {
     }
   }, [clearTokens])
 
-  useEffect(() => {
-    function handleOutsideClick(event: MouseEvent) {
-      const target = event.target as Node
-      if (!modalRef.current || !avatarTriggerRef.current) return
-      if (!modalRef.current.contains(target) && !avatarTriggerRef.current.contains(target)) {
-        setIsAccountModalOpen(false)
+  async function handleLogout() {
+    try {
+      if (tokens?.refreshToken) {
+        await logout(tokens.refreshToken)
       }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      clearTokens()
     }
-
-    document.addEventListener('click', handleOutsideClick)
-    return () => document.removeEventListener('click', handleOutsideClick)
-  }, [])
+  }
 
   if (isLoadingProfile) {
     return <div className="home-root" style={{ display: 'grid', placeItems: 'center' }}>Loading...</div>
@@ -163,46 +163,13 @@ export function HomePage() {
         avatarNode={<UserAvatar profile={profile} />}
       />
 
-      <div ref={modalRef} className={`account-modal ${isAccountModalOpen ? 'show' : ''}`}>
-        <button className="close-modal-btn" type="button" onClick={() => setIsAccountModalOpen(false)}>
-          <span className="material-symbols-outlined">close</span>
-        </button>
-
-        <div className="account-info">
-          <div className="email-text">{profile.email}</div>
-          <div className="large-avatar-container">
-            <div className="large-avatar">
-              {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={profile.fullName || profile.email} />
-              ) : (
-                getInitials(profile.fullName || profile.email)
-              )}
-            </div>
-            <div className="camera-icon">
-              <span className="material-symbols-outlined">photo_camera</span>
-            </div>
-          </div>
-          <div className="greeting-text">Hi {profile.fullName || 'there'},</div>
-          <button type="button" className="manage-account-btn">
-            Manage your Google Account
-          </button>
-        </div>
-
-        <div className="account-actions">
-          <button type="button" className="action-btn">
-            <span className="material-symbols-outlined">add</span>
-            Add account
-          </button>
-          <button type="button" className="action-btn" onClick={clearTokens}>
-            <span className="material-symbols-outlined">logout</span>
-            Sign out
-          </button>
-        </div>
-
-        <div className="modal-footer">
-          <a href="#">Privacy Policy</a> • <a href="#">Terms of Service</a>
-        </div>
-      </div>
+      <AccountModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        onLogout={() => void handleLogout()}
+        profile={profile}
+        avatarTriggerRef={avatarTriggerRef}
+      />
 
       <div className="main-container">
         <HomeSidebar isCollapsed={isSidebarCollapsed} />
@@ -223,6 +190,11 @@ export function HomePage() {
                 {classes.map((classroom) => (
                   <div className="class-card" key={classroom.classStudentId}>
                     <div className="class-header">
+                      <img
+                        src="https://gstatic.com/classroom/themes/img_bookclub.jpg"
+                        alt="Classroom theme"
+                        className="class-header-image"
+                      />
                       <h3>{classroom.className || classroom.classCode || 'Class'}</h3>
                       <p>{classroom.courseName || ''}</p>
                     </div>

@@ -30,6 +30,21 @@ export type MyClass = {
   leftAt: string | null
 }
 
+export type MyClassSession = {
+  classSessionId: number
+  classId: number
+  classCode: string | null
+  className: string | null
+  sessionDate: string
+  startTime: string | null
+  endTime: string | null
+  teacherId: number | null
+  roomId: number | null
+  roomName: string | null
+  roomLocation: string | null
+  status: number
+}
+
 export async function getMyClasses() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
   const params = new URLSearchParams({
@@ -58,6 +73,48 @@ export async function getMyClasses() {
   const payload = (await response.json()) as ApiResponse<PagedResponse<MyClass>>
   if (!payload.success || !payload.data) {
     throw new Error(payload.message || 'Unable to load classes.')
+  }
+
+  return payload.data
+}
+
+type GetMyClassSessionsParams = {
+  classId?: string
+  sessionDateFrom?: string
+  sessionDateTo?: string
+}
+
+export async function getMyClassSessions(params: GetMyClassSessionsParams) {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+  const searchParams = new URLSearchParams({
+    ClassId: params.classId ?? '',
+    SessionDateFrom: params.sessionDateFrom ?? '',
+    SessionDateTo: params.sessionDateTo ?? '',
+    Status: '',
+    OrderBy: '',
+    OrderDir: '',
+    Page: '1',
+    PageSize: '100',
+  })
+
+  const response = await authFetch(
+    `${apiBaseUrl}/api/students/my_class_sessions?${searchParams.toString()}`,
+    {
+      method: 'GET',
+    },
+  )
+
+  if (response.status === 401) {
+    throw new Error('UNAUTHORIZED')
+  }
+
+  if (!response.ok) {
+    throw new Error('Unable to load class sessions.')
+  }
+
+  const payload = (await response.json()) as ApiResponse<PagedResponse<MyClassSession>>
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message || 'Unable to load class sessions.')
   }
 
   return payload.data
