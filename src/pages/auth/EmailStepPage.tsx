@@ -19,9 +19,14 @@ import {
 import { AnimatePresence, motion } from 'framer-motion'
 import { checkEmail, login } from '../../services/authApi'
 import { authTypography } from '../../constants/authTypography'
+import { AuthLinearProgress } from '../../components/auth/AuthLinearProgress'
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 const theme = createTheme({
@@ -40,6 +45,21 @@ const theme = createTheme({
     fontFamily: 'Inter, Roboto, Arial, sans-serif',
   },
 })
+
+const stepVariants = {
+  enter: (customDirection: number) => ({
+    opacity: 0,
+    x: customDirection > 0 ? 24 : -24,
+  }),
+  center: {
+    opacity: 1,
+    x: 0,
+  },
+  exit: (customDirection: number) => ({
+    opacity: 0,
+    x: customDirection > 0 ? -24 : 24,
+  }),
+}
 
 export function EmailStepPage() {
   const [step, setStep] = useState<'email' | 'password'>('email')
@@ -74,6 +94,7 @@ export function EmailStepPage() {
       setError('')
       setStatusMessage('')
       try {
+        await delay(2000)
         const response = await checkEmail(normalizedEmail)
         if (!response.exists) {
           setError("Couldn't find your account with this email.")
@@ -96,6 +117,7 @@ export function EmailStepPage() {
     setError('')
     setStatusMessage('')
     try {
+      await delay(2000)
       await login(email.trim().toLowerCase(), password)
       setStatusMessage('Signed in successfully.')
     } catch (requestError) {
@@ -131,19 +153,25 @@ export function EmailStepPage() {
           <Card
             elevation={0}
             sx={{
+              position: 'relative',
+              overflow: 'hidden',
               borderRadius: '28px',
               p: { xs: 4, md: 6 },
               boxShadow: '0 1px 2px rgba(60,64,67,0.1),0 1px 3px rgba(60,64,67,0.08)',
             }}
           >
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={step}
-                initial={{ opacity: 0, x: direction === 1 ? 20 : -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: direction === 1 ? -20 : 20 }}
-                transition={{ duration: 0.2 }}
-              >
+            <AuthLinearProgress isVisible={isLoading} />
+            <motion.div animate={{ opacity: isLoading ? 0.85 : 1 }} transition={{ duration: 0.18 }}>
+              <AnimatePresence mode="wait" initial={false} custom={direction}>
+                <motion.div
+                  key={step}
+                  custom={direction}
+                  variants={stepVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+                >
                 <Box
                   sx={{
                     display: 'grid',
@@ -272,6 +300,7 @@ export function EmailStepPage() {
                             fontWeight: authTypography.link.fontWeight,
                             color: authTypography.link.color,
                           }}
+                          disabled={isLoading}
                         >
                           Forgot email?
                         </Button>
@@ -367,6 +396,7 @@ export function EmailStepPage() {
                             fontWeight: authTypography.link.fontWeight,
                             color: authTypography.link.color,
                           }}
+                          disabled={isLoading}
                         >
                           Create account
                         </Button>
@@ -381,6 +411,7 @@ export function EmailStepPage() {
                             color: authTypography.link.color,
                           }}
                           onClick={handleBackToEmailStep}
+                          disabled={isLoading}
                         >
                           Try another way
                         </Button>
@@ -404,8 +435,9 @@ export function EmailStepPage() {
                     </Box>
                   </Box>
                 </Box>
-              </motion.div>
-            </AnimatePresence>
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
           </Card>
 
           <Box
